@@ -3,11 +3,14 @@ import os
 from supabase import create_client, Client
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev")
 
 # Supabase setup
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("Missing Supabase credentials")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 @app.route("/", methods=["GET", "POST"])
@@ -36,7 +39,10 @@ def balance():
     username = session["user"]
     if request.method == "GET":
         user = supabase.table("users").select("balance").eq("name", username).execute()
-        return jsonify({"balance": user.data[0]["balance"]})
+        if user.data and len(user.data) > 0:
+            return jsonify({"balance": user.data[0]["balance"]})
+        else:
+            return jsonify({"error": "User not found"}), 404
     elif request.method == "POST":
         new_balance = float(request.json["balance"])
         supabase.table("users").update({"balance": new_balance}).eq("name", username).execute()
@@ -48,4 +54,6 @@ def logout():
     return redirect("/")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+    
