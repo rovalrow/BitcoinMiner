@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bitcoin Miner</title>
+  <style>
+    body {
+      background-color: #1e1e2f;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .miner-box {
+      background-color: #2c2c3e;
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+    .miner-box h1 {
+      margin-bottom: 20px;
+    }
+    .miner-box p {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    .mine-button {
+      padding: 10px 20px;
+      background-color: #ffcc00;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="miner-box">
+    <h1>Bitcoin Miner</h1>
+    <p>Balance: <span id="balance">0</span> BTC</p>
+    <button class="mine-button" onclick="mine()">Mine</button>
+  </div>
+  <script>
+    let balance = 0;
+    async function mine() {
+      balance += Math.random() * 0.01;
+      document.getElementById('balance').textContent = balance.toFixed(4);
+      await fetch('/update_balance', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({balance: balance})
+      });
+    }
+  </script>
+</body>
+</html>
