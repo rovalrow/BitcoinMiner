@@ -1,14 +1,16 @@
 from flask import Flask, render_template, request, redirect, session, jsonify
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
 import os
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # Needed for session management
+app.secret_key = os.environ.get("SECRET_KEY")
+app.config["SESSION_COOKIE_SECURE"] = True  # Important for Render (HTTPS)
 
 # Supabase setup
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+options = ClientOptions(schema="public", auto_refresh_token=True, persist_session=True)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY, options)
 
 @app.route("/", methods=["GET"])
 def index():
@@ -21,8 +23,10 @@ def login():
         username = data.get("username")
         password = data.get("password")
 
-        result = supabase.table("users").select("name").eq("name", username).eq("password", password).execute()
-        if result.data:
+        # Make sure to select both name and password fields
+        result = supabase.table("users").select("name, password").eq("name", username).eq("password", password).execute()
+
+        if result.data and len(result.data) > 0:
             session["user"] = username
             return jsonify({"success": True})
         else:
