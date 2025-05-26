@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,7 +44,7 @@
 <body>
   <div class="miner-box">
     <h1>Bitcoin Miner</h1>
-    <p>Balance: <span id="balance">0</span> BTC</p>
+    <p>Balance: <span id="balance">0.0000</span> BTC</p>
     <button class="mine-button" onclick="mine()">Mine</button>
   </div>
   <script>
@@ -53,12 +52,21 @@
     async function mine() {
       balance += Math.random() * 0.01;
       document.getElementById('balance').textContent = balance.toFixed(4);
-      await fetch('/update_balance', {
+      await fetch('/balance', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({balance: balance})
+        body: JSON.stringify({ balance: balance })
       });
     }
+
+    async function fetchBalance() {
+      const res = await fetch('/balance');
+      const data = await res.json();
+      balance = data.balance || 0;
+      document.getElementById('balance').textContent = balance.toFixed(4);
+    }
+
+    fetchBalance();
   </script>
 </body>
 </html>
