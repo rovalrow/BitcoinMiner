@@ -3,7 +3,7 @@ from supabase import create_client, Client
 import os
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # Needed for session management
+app.secret_key = os.environ.get("SECRET_KEY")
 
 # Supabase setup
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
