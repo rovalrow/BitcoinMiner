@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, jsonify
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
 import os
 
 app = Flask(__name__)
@@ -8,20 +8,25 @@ app.secret_key = os.environ.get("SECRET_KEY")
 # Supabase setup
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+options = ClientOptions(schema="public", auto_refresh_token=True, persist_session=True)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY, options)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        data = request.get_json()
-        username = data.get("username")
-        password = data.get("password")
-        result = supabase.table("users").select("*").eq("name", username).eq("password", password).execute()
-        if result.data:
-            session["user"] = username
-            return jsonify({"success": True})
-        else:
-            return jsonify({"success": False})
+        try:
+            data = request.get_json()
+            username = data.get("username")
+            password = data.get("password")
+
+            result = supabase.table("users").select("name").eq("name", username).eq("password", password).execute()
+            if result.data:
+                session["user"] = username
+                return jsonify({"success": True})
+            else:
+                return jsonify({"success": False})
+        except Exception as e:
+            return jsonify({"error": "Login failed", "details": str(e)}), 500
     return render_template("login.html")
 
 @app.route("/miner")
@@ -34,21 +39,32 @@ def miner():
 def balance():
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 403
+
     username = session["user"]
+
     if request.method == "GET":
-        user = supabase.table("users").select("balance").eq("name", username).execute()
-        if user.data:
-            return jsonify({"balance": user.data[0]["balance"]})
-        return jsonify({"balance": 0})
+        try:
+            user = supabase.table("users").select("balance").eq("name", username).execute()
+            if user.data:
+                return jsonify({"balance": user.data[0]["balance"]})
+            return jsonify({"balance": 0})
+        except Exception as e:
+            return jsonify({"error": "Fetch failed", "details": str(e)}), 500
+
     elif request.method == "POST":
-        new_balance = float(request.json["balance"])
-        supabase.table("users").update({"balance": new_balance}).eq("name", username).execute()
-        return jsonify({"status": "updated"})
+        try:
+            new_balance = float(request.json["balance"])
+            supabase.table("users").update({"balance": new_balance}).eq("name", username).execute()
+            return jsonify({"status": "updated"})
+        except Exception as e:
+            return jsonify({"error": "Update failed", "details": str(e)}), 500
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
+# Do not use this for production
 if __name__ == "__main__":
     app.run(debug=True)
+    
